@@ -1,0 +1,123 @@
+using System;
+
+namespace ConsoleApplication5
+{
+    #region Constants
+    class Players
+    {
+        public static int Empty = 0;
+        public static int FirstPlayer = 1;
+        public static int SecondPlayer = 2;
+    }
+
+    class Types
+    {
+        public static int Empty = 0;
+        public static int King = 1;
+        public static int Straight = 2;
+        public static int Cross = 3;
+    }
+
+    
+    class Directions
+    {
+        public static int Upward = 0;
+        public static int Downward = 1;
+    }
+    #endregion
+    public class Program
+    {                
+        public struct Cell
+        {
+            public int pid;
+            public int type;
+            public int direction;
+        };
+		
+		public static Cell[,] grid ;
+		
+		static void Main(string[] args)
+        {
+            # region inputs
+            grid = new Cell[10,4];
+			for ( int i = 0 ; i < 10 ; i++ )
+			{
+				string[] line = Console.ReadLine().Trim().Split();
+				for ( int j = 0 ; j < line.Length ; j++ )
+				{
+					int tmp_pid = -1 ;
+					if ( line[j][0] == '0' )
+					{
+						tmp_pid = Players.Empty ;
+					}
+					else if ( line[j][0] == '1' )
+					{
+						tmp_pid = Players.FirstPlayer ;
+					}
+					else
+					{
+						tmp_pid = Players.SecondPlayer ;
+					}
+					
+					int tmp_type = -1 ;
+					if ( line[j][1] == '0' )
+					{
+						tmp_type = Types.Empty ;
+					}
+					else if ( line[j][1] == '1' )
+					{
+						tmp_type = Types.King ;
+					}
+					else if ( line[j][1] == '2' )
+					{
+						tmp_type = Types.Straight ;
+					}
+					else
+					{
+						tmp_type = Types.Cross ;
+					}
+					
+					int tmp_direction = -1 ;
+					if ( line[j][2] == '0' )
+					{
+						tmp_direction = Directions.Upward ;
+					}
+					else
+					{
+						tmp_direction = Directions.Downward ;
+					}
+					
+					grid[i,j].pid = tmp_pid ;
+					grid[i,j].type = tmp_type ;
+					grid[i,j].direction = tmp_direction ;
+				}
+            }
+            #endregion
+            
+            /*  
+             *  Current Heuristic Score
+             *  
+             *  Valid Moves
+             *  {
+             *      Execute Move
+             *      New Heuristic Score
+             *      UnExecute Move             
+             *      Calculate Delta 
+             *  }
+             *  
+             *  Valid Moves : Sorted By Delta
+             *  {
+             *      Execute and Remember Move
+             *      Inverted Inputs for child Dimension
+             *      -> BlackHole -> ()note -> MOST CRITICAL CALL BACK ANALYSIS PART 
+             *      Re-Invert the Inputs to parent Dimension
+             *      
+             *  }
+             *  
+             */
+
+			
+		}
+        
+    }
+}
