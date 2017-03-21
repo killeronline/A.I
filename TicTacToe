@@ -1,165 +1,232 @@
-using System; 
-using System.Numerics;
-class MyClass {
-	static int PID = 0 ;
-	static int BEST_SCORE = 0 ;
-	static int BEST_X = 0 ;
-	static int BEST_Y = 0 ;
-	static void h( int s , int i , int j )
-	{
-		if ( s > BEST_SCORE )
-		{
-			BEST_SCORE = s ;
-			BEST_X = i ;
-			BEST_Y = j ;
-		}
-	}
-	static int c( int x , int p )
-	{
-		if ( x == p )
-		{
-			return 1 ;
-		}
-		else if ( x == 0 )
-		{
-			return 0 ;
-		}
-		else
-		{
-			return -1;
-		}
-	}
-    static void Main(string[] args) {
-        #region Inputs
-        int[,] arr2 = new int[3,3];
-        string[] line1 = Console.ReadLine().Trim().Split(' ');
-        arr2[0,0] = Int32.Parse( line1[0] );
-        arr2[0,1] = Int32.Parse( line1[1] );
-        arr2[0,2] = Int32.Parse( line1[2] );
-        string[] line2 = Console.ReadLine().Trim().Split(' ');
-        arr2[1,0] = Int32.Parse( line2[0] );
-        arr2[1,1] = Int32.Parse( line2[1] );
-        arr2[1,2] = Int32.Parse( line2[2] );
-        string[] line3 = Console.ReadLine().Trim().Split(' ');
-        arr2[2,0] = Int32.Parse( line3[0] );
-        arr2[2,1] = Int32.Parse( line3[1] );
-        arr2[2,2] = Int32.Parse( line3[2] );
-		PID = Int32.Parse(Console.ReadLine().Trim());
-		#endregion
-        // arr , pid
-        BEST_SCORE = 0 ;
-        BEST_X = 0 ;
-        BEST_Y = 0 ;
-        
-        
-        int[] test = ht( ref arr2 , PID );
-        BEST_X = test[1];
-        BEST_Y = test[2];
-        if ( test[0] == 999 )
-        {
-        	// we win
-        }
-        else
-        {
-        	arr2[ BEST_X , BEST_Y ] = PID ; 
-        	int[] test2 = ht( ref arr2 , PID==1?2:1 );
-        	if ( test2[0] == 999 )
-        	{
-        		// this should be in a decision tree
-        	}
-        	else
-        	{
-        		//proceed
-        	}
-        }
-        
-        
-        Console.WriteLine( BEST_Y + " " + BEST_X );
-        
-    }
-    static int[] ht( ref int[,] arr , int p )
+using System;
+using System.Collections.Generic;
+
+namespace ConsoleApplication5
+{
+    #region Constants
+    class Players
     {
-    	int max_score = -999 ;
-    	int max_i = 0 ;
-    	int max_j = 0 ;
-    	int occupiedCells = 0 ;
-    	for ( int i = 0 ; i < 3 ; i++ )
+        public static int Empty = 0;
+        public static int WhitePlayer = 1;
+        public static int BlackPlayer = 2;
+    }
+
+    class Pieces
+    {
+        public static int Empty = 0;
+        public static int White = 1;
+        public static int Black = 2;        
+    }        
+    #endregion
+
+    public class Program
+    {                
+        public struct Cell
+        {            
+            public int piece;            
+        };
+        public struct Move
         {
-        	for ( int j = 0 ; j < 3 ; j++ )
-        	{
-        		if ( arr[i,j] == 0 )
-        		{
-    				arr[i,j] = p ;
-    				int score = 0 ;
-    				
-    				for ( int k = 0 ; k < 3 ; k++ )
-    				{
-    					int rowSums = c(arr[k,0],p) + c(arr[k,1],p) + c(arr[k,2],p) ;
-    					if (  rowSums == 3 )
-    					{
-    						return new int[]{ 999 , i , j };
-    					}
-    					else
-    					{
-    						score += rowSums ;
-    					}
-    				}
-    				
-    				for ( int k = 0 ; k < 3 ; k++ )
-    				{
-    					int colSums = c(arr[0,k],p) + c(arr[1,k],p) + c(arr[2,k],p) ;
-    					if (  colSums == 3 )
-    					{
-    						return new int[]{ 999 , i , j };
-    					}
-    					else
-    					{
-    						score += colSums ;
-    					}
-    				}
-    				
-    				int LeftDiag = c(arr[0,0],p) + c(arr[1,1],p) + c(arr[2,2],p) ;
-    				if ( LeftDiag == 3 )
-    				{
-    					return new int[]{ 999 , i , j };
-    				}
-    				else
-    				{
-    					score += LeftDiag ;
-    				}
-    				
-    				int RightDiag = c(arr[0,2],p) + c(arr[1,1],p) + c(arr[2,0],p) ;
-    				if ( RightDiag == 3 )
-    				{
-    					return new int[]{ 999 , i , j };
-    				}
-    				else
-    				{
-    					score += RightDiag ;
-    				}
-    				
-    				if ( score > max_score )
-    				{
-    					max_score = score ;
-    					max_i = i ;
-    					max_j = j ;
-    				}
-    				
-    				arr[i,j] = 0 ;
-        		}
-        		else
-        		{
-        			occupiedCells++ ;
-        		}
-        	}
-        }
-        if ( occupiedCells == 9 )
+            public int p ;
+            public int r ;
+            public int c ;
+            public int delta ;
+        };
+		public static Cell[,] grid ;        
+        public static int Sentinel = 999;
+        public static int PID ;
+        public static int H;
+        public static int Depth = 3;
+		
+		static void Main(string[] args)
         {
-        	return new int[]{ 0 , 0 , 0 };
+            # region inputs
+            grid = new Cell[3,3];
+			for ( int i = 0 ; i < 3 ; i++ )
+			{
+				string[] line = Console.ReadLine().Trim().Split();
+				for ( int j = 0 ; j < line.Length ; j++ )
+				{						
+														
+					if ( line[j] == "0" )
+					{
+                        grid[i, j].piece = Pieces.Empty;
+					}
+                    else if ( line[j] == "1" )
+                    {
+                        grid[i, j].piece = Pieces.White;
+                    }
+                    else if (line[j] == "2")
+                    {
+                        grid[i, j].piece = Pieces.Black;
+                    }
+                    else
+                    {
+                        Console.WriteLine("Invalid Input");
+                        return;
+                    }
+			    }
+            }
+            string pline = Console.ReadLine().Trim();
+            if (pline == "1")
+            {
+                PID = Players.WhitePlayer;
+            }
+            else if (pline == "2")
+            {
+                PID = Players.BlackPlayer;
+            }
+            else
+            {
+                Console.WriteLine("Invalid Input");
+                return;
+            }
+            #endregion
+            
+            /*  
+             *  Current Heuristic Score
+             *  
+             *  Valid Moves
+             *  {
+             *      Execute Move
+             *      New Heuristic Score
+             *      UnExecute Move             
+             *      Calculate Delta 
+             *  }
+             *  
+             *  Valid Moves : Sorted By Delta
+             *  {
+             *      Execute and Remember Move
+             *      Inverted Inputs for child Dimension
+             *      -> BlackHole -> ()note -> delta and step as call back...
+             *      Re-Invert the Inputs to parent Dimension
+             *  }
+             *  
+             *  After The BlackHole Loop we must get a highest tilda ( when our move ) and Lowest tilda ( when opponent move ) and a step from thinking
+             *  
+             */
+            g(0);
+            Console.ReadLine();
+		}
+
+        public static int g(int LeveL)
+        {            
+            int _pid = LeveL % 2 == 0 ? PID : (PID == 1 ? 2 : 1); 
+            int u = h( _pid );
+
+            if (LeveL== 0)
+            {
+                H = u;
+            }
+
+            List<Move> Valid_Moves = new List<Move>();
+
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    if (grid[i, j].piece == 0)// Valid Move
+                    {
+                        Move m = new Move();
+                        m.p = _pid;
+                        m.r = i;
+                        m.c = j;                        
+                        Execute(m);
+                        m.delta = ( h( _pid ) - u );
+                        UnExecute(m);
+                        Valid_Moves.Add(m);
+                    }
+                }
+            }
+            
+            Valid_Moves.Sort((x, y) => (x.delta > y.delta ? -1 : x.delta < y.delta ? 1 : 0));
+
+            foreach (Move m in Valid_Moves)
+            {                
+                Execute(m);
+
+                if (LeveL < 2 * Depth)
+                {
+                    g(LeveL + 1); // Theory of Black Holes
+                }
+                else
+                {
+                    // Leaf Move
+                }                
+                    
+                UnExecute(m);
+            }
+
+            return 0;
         }
-        else
+
+        public static int h(int pid)
         {
-        	return new int[]{ max_score , max_i , max_j };
+            int s = 0 ; 
+
+            for (int i = 0; i < 3; i++)// Any Row
+            {
+                int r = p(i, 0, pid) + p(i, 1, pid) + p(i, 2, pid);
+                if ( r == 3)
+                {
+                    return Sentinel;
+                }
+                else if ( r > 0 )
+                {
+                    s++;
+                }                
+            }
+
+            for (int i = 0; i < 3; i++)// Any Column
+            {
+                int c = p(0, i, pid) + p(1, i, pid) + p(2, i, pid);
+                if (c == 3)
+                {
+                    return Sentinel;
+                }
+                else if ( c > 0 )
+                {
+                    s++;
+                }
+            }
+
+            int fd = p(0, 0, pid) + p(1, 1, pid) + p(2, 2, pid);
+            if ( fd == 3)// Backward Diagonal
+            {
+                return Sentinel;
+            }
+            else if ( fd > 0 )
+            {
+                s++;
+            }
+
+            int bd = p(0, 2, pid) + p(1, 1, pid) + p(2, 0, pid);
+            if (bd == 3)// Forward Diagonal
+            {
+                return Sentinel;
+            }
+            else if( bd > 0 )
+            {
+                s++;
+            }
+
+            return s;
         }
+
+        public static int p( int i , int j , int w )
+        {
+            return grid[i, j].piece == w ? 1 : grid[i, j].piece == 0 ? 0 : -9;
+        }
+
+        public static void Execute(Move m)
+        {
+            grid[m.r, m.c].piece = m.p;
+        }
+
+        public static void UnExecute(Move m)
+        {
+            grid[m.r, m.c].piece = 0;
+        }
+
     }
 }
