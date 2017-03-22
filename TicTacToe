@@ -29,14 +29,23 @@ namespace ConsoleApplication5
         {
             public int p ;
             public int r ;
-            public int c ;
-            public int delta ;
+            public int c ;            
+            public int v ;
         };
-		public static Cell[,] grid ;        
+        public struct Climax
+        {
+            public int counters ;
+            public int fails ;
+            public int handlers;
+        };
+		public static Cell[,] grid ;
+        public static Move Best_Move;
+        public static Move Hand_Move;
+        public static Move Fail_Move;
         public static int Sentinel = 999;
         public static int PID ;
         public static int H;
-        public static int Depth = 3;
+        public static int Depth = 3;        
 		
 		static void Main(string[] args)
         {
@@ -106,18 +115,19 @@ namespace ConsoleApplication5
              *  
              */
             g(0);
+            Move choice = Best_Move.p == PID ? Best_Move : Hand_Move.p == PID ? Hand_Move : Fail_Move;            
+            Console.WriteLine("{0} {1}",choice.c, choice.r);            
             Console.ReadLine();
 		}
 
-        public static int g(int LeveL)
-        {            
-            int _pid = LeveL % 2 == 0 ? PID : (PID == 1 ? 2 : 1); 
-            int u = h( _pid );
+        public static Climax g(int LeveL)
+        {
+            Climax cx = new Climax();
+            cx.counters = 0;
+            cx.handlers = 0;
+            cx.fails = 0;
 
-            if (LeveL== 0)
-            {
-                H = u;
-            }
+            int _pid = LeveL % 2 == 0 ? PID : (PID == 1 ? 2 : 1);                  
 
             List<Move> Valid_Moves = new List<Move>();
 
@@ -130,34 +140,103 @@ namespace ConsoleApplication5
                         Move m = new Move();
                         m.p = _pid;
                         m.r = i;
-                        m.c = j;                        
-                        Execute(m);
-                        m.delta = ( h( _pid ) - u );
+                        m.c = j;   
+                     
+                        Execute(m);                        
+
+                        m.v = h(_pid);                        
+
                         UnExecute(m);
+
                         Valid_Moves.Add(m);
                     }
                 }
             }
             
-            Valid_Moves.Sort((x, y) => (x.delta > y.delta ? -1 : x.delta < y.delta ? 1 : 0));
+            Valid_Moves.Sort((x, y) => (x.v > y.v ? -1 : x.v < y.v ? 1 : 0));            
 
-            foreach (Move m in Valid_Moves)
+            if (Valid_Moves.Count > 0)
             {                
-                Execute(m);
-
-                if (LeveL < 2 * Depth)
+                
+                foreach (Move m in Valid_Moves)
                 {
-                    g(LeveL + 1); // Theory of Black Holes
+                    if (m.v == Sentinel)
+                    {
+                        if (LeveL == 0)
+                        {
+                            Best_Move = m ;// Recording Immediate Best Move
+                        }
+                        cx.counters = Valid_Moves.Count ;// This move overrates all other moves
+                        break;
+                    }
+
+                    if (LeveL < 2 * Depth)
+                    {
+                        Execute(m);
+
+                        Climax tilda = g(LeveL + 1);
+
+                        UnExecute(m);
+                        
+                        if (tilda.counters > 0)// Opp Sure Play
+                        {
+                            cx.fails++;
+                        }
+                        else if (tilda.handlers > 0)// Opp Sure Handles
+                        {
+                            cx.handlers++;
+                        }
+                        else if (tilda.fails > 0)// Forced Opp Fail
+                        {
+                            cx.counters++;
+                        }
+                        else
+                        {
+                            // tilda is interesting or No Move or Leaf Node
+                        }                                                
+                    }
+                    else
+                    {                        
+                        if (m.v > 0)
+                        {
+                            cx.counters++;
+                        }
+                        else if (m.v == 0)
+                        {
+                            cx.handlers++;
+                        }
+                        else
+                        {
+                            cx.fails++;
+                        }
+                    }
+                    if (LeveL == 0)
+                    {
+                        if (cx.counters > 0)
+                        {
+                            Best_Move = m;
+                            break;
+                        }
+                        else if (cx.handlers > 0)
+                        {
+                            Hand_Move = m;
+                            cx.handlers = 0;
+                        }
+                        else if (cx.fails > 0)
+                        {
+                            Fail_Move = m;
+                            cx.fails = 0;
+                        }
+                        else
+                        {
+                            Fail_Move = m;
+                            cx.fails = 0;
+                        }
+                    }                                                  
                 }
-                else
-                {
-                    // Leaf Move
-                }                
-                    
-                UnExecute(m);
             }
-
-            return 0;
+            // Else No Move Scenario             
+            return cx ;
         }
 
         public static int h(int pid)
