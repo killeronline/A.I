@@ -21,23 +21,7 @@ namespace ConsoleApplication5
     #endregion
 
     public class Program
-    {                
-        public struct Cell
-        {            
-            public Cell( int _piece )
-            {
-                piece = _piece;
-            }
-            public int piece;            
-        };
-        public struct Move
-        {
-            public int p ;
-            public int r ;
-            public int c ;            
-            public int v ;
-            public List<Transaction> steps;
-        };
+    {   
         public struct Transaction
         {
             public Transaction( int _r , int _c , Cell _current )
@@ -53,18 +37,36 @@ namespace ConsoleApplication5
             public Cell current;
         }
 		public static Cell[,] grid ;
-        public static Move Best_Move;        
-        public static int Sentinel = 999;
-        public static int PID ;        
-        public static int Depth = 3;
+        public static Move Best_Move;                
+        public static int PID ;                
         public static List<string> vdata = new List<string>();
-        public static bool file = false;
-        public static bool manual = true;
-		
-		static void Main(string[] args)
+        public static void Perform(Move m)
+        {
+            foreach (Transaction t in m.steps)
+            {
+                ExecuteStep(t);
+            }
+        }
+        public static void ExecuteStep(Transaction t)
+        {
+            t.old = grid[t.r, t.c];
+            grid[t.r, t.c] = t.current;
+        }
+        public static void UnExecute(Move m)
+        {
+            foreach (Transaction t in m.steps)
+            {
+                UnExecuteStep(t);
+            }
+        }
+        public static void UnExecuteStep(Transaction t)
+        {
+            grid[t.r, t.c] = t.old;
+        }
+        public static void Main(string[] args)
         {
 
-            if ( manual )
+            if (manual)
             {
                 First_Board();
                 Print_Board();
@@ -74,24 +76,24 @@ namespace ConsoleApplication5
             {
                 TakeInputs();
                 file = false;
-            }                                    
+            }
             int T = 0;
             while (T < 100)
-            {                
+            {
                 if (file)
                 {
                     vdata.Clear();
                 }
-                g(0);                
-                Print_Move( Best_Move );
+                g(0);
+                Print_Move(Best_Move);
                 if (manual)
                 {
                     Execute(ref Best_Move);
                     Print_Board();
-                }                                
+                }
                 if (file)
                 {
-                    System.IO.File.WriteAllLines(@"C:\Users\Administrator\Desktop\TTTAI\WriteLines.xml",vdata.ToArray());
+                    System.IO.File.WriteAllLines(@"C:\Users\Administrator\Desktop\TTTAI\WriteLines.xml", vdata.ToArray());
                 }
                 if (manual)
                 {
@@ -102,10 +104,32 @@ namespace ConsoleApplication5
                 }
                 else
                 {
-                    Console.ReadLine();
+                    Console.ReadLine();// Trim this for flush output
+                    break;
                 }
             }
-		}
+        }
+
+        public struct Cell
+        {
+            public Cell(int _piece)
+            {
+                piece = _piece;
+            }
+            public int piece;            
+        };
+        public struct Move
+        {
+            public int p;
+            public int r;
+            public int c;
+            public int v;
+            public List<Transaction> steps;
+        };
+        public static bool file = false;
+        public static bool manual = true;
+        public static int Depth = 3;
+        public static int Sentinel = 999;
 
         public static void First_Board()
         {
@@ -406,34 +430,7 @@ namespace ConsoleApplication5
             m.steps = new List<Transaction>();
             m.steps.Add( new Transaction( m.r, m.c , new Cell(m.p) ) );
             Perform(m);
-        }
-
-        public static void Perform(Move m)
-        {
-            foreach (Transaction t in m.steps)
-            {
-                ExecuteStep(t);
-            }
-        }
-
-        public static void ExecuteStep( Transaction t )
-        {
-            t.old = grid[t.r, t.c];
-            grid[t.r, t.c] = t.current;            
-        }
-
-        public static void UnExecute(Move m)
-        {            
-            foreach (Transaction t in m.steps)
-            {
-                UnExecuteStep(t);
-            }
-        }
-
-        public static void UnExecuteStep(Transaction t)
-        {
-            grid[t.r, t.c] = t.old ;
-        }
+        } 
 
     }
 }
