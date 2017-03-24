@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 using System.Collections.Generic;
 
 namespace ConsoleApplication5
@@ -31,37 +32,62 @@ namespace ConsoleApplication5
             public int r ;
             public int c ;            
             public int v ;
-        };
-        public struct Climax
-        {
-            public int counters ;
-            public int fails ;
-            public int handlers;
-        };
+        };        
 		public static Cell[,] grid ;
         public static Move Best_Move;
         public static Move Hand_Move;
         public static Move Fail_Move;
         public static int Sentinel = 999;
-        public static int PID ;
-        public static int H;
-        public static int Depth = 3;        
+        public static int PID ;        
+        public static int Depth = 3;
+        public static List<string> vdata = new List<string>();
+        public static bool debug = false;
 		
 		static void Main(string[] args)
-        {
-            # region inputs
-            grid = new Cell[3,3];
-			for ( int i = 0 ; i < 3 ; i++ )
-			{
-				string[] line = Console.ReadLine().Trim().Split();
-				for ( int j = 0 ; j < line.Length ; j++ )
-				{						
-														
-					if ( line[j] == "0" )
-					{
+        {                                    
+            //TakeInputs();
+            int T = 0 ;
+            grid = new Cell[3, 3];            
+            Print_Board();
+            while (T < 20)
+            {
+                vdata.Clear();                
+                PID = 1;
+                Best_Move.p = 0;
+                Hand_Move.p = 0;
+                Fail_Move.p = 0;
+                g(0);
+                Move choice = Best_Move.p == PID ? Best_Move : Hand_Move.p == PID ? Hand_Move : Fail_Move;
+                //Print_Conclusion_Move(choice);
+                Print_Board_And_Make_Move(choice);
+                if (debug)
+                {
+                    System.IO.File.WriteAllLines(@"C:\Users\Administrator\Desktop\TTTAI\WriteLines.xml",vdata.ToArray());
+                }
+                //Console.ReadLine();
+                string[] inp = Console.ReadLine().Trim().Split();
+                if (inp.Length < 2)
+                {
+                    break;
+                }
+                grid[Int32.Parse(inp[0]), Int32.Parse(inp[1])].piece = 2;// MySelf
+            }
+		}
+
+        public static void TakeInputs()
+        {            
+            grid = new Cell[3, 3];
+            for (int i = 0; i < 3; i++)
+            {
+                string[] line = Console.ReadLine().Trim().Split();
+                for (int j = 0; j < line.Length; j++)
+                {
+
+                    if (line[j] == "0")
+                    {
                         grid[i, j].piece = Pieces.Empty;
-					}
-                    else if ( line[j] == "1" )
+                    }
+                    else if (line[j] == "1")
                     {
                         grid[i, j].piece = Pieces.White;
                     }
@@ -74,7 +100,7 @@ namespace ConsoleApplication5
                         Console.WriteLine("Invalid Input");
                         return;
                     }
-			    }
+                }
             }
             string pline = Console.ReadLine().Trim();
             if (pline == "1")
@@ -89,154 +115,155 @@ namespace ConsoleApplication5
             {
                 Console.WriteLine("Invalid Input");
                 return;
-            }
-            #endregion
-            
-            /*  
-             *  Current Heuristic Score
-             *  
-             *  Valid Moves
-             *  {
-             *      Execute Move
-             *      New Heuristic Score
-             *      UnExecute Move             
-             *      Calculate Delta 
-             *  }
-             *  
-             *  Valid Moves : Sorted By Delta
-             *  {
-             *      Execute and Remember Move
-             *      Inverted Inputs for child Dimension
-             *      -> BlackHole -> ()note -> delta and step as call back...
-             *      Re-Invert the Inputs to parent Dimension
-             *  }
-             *  
-             *  After The BlackHole Loop we must get a highest tilda ( when our move ) and Lowest tilda ( when opponent move ) and a step from thinking
-             *  
-             */
-            g(0);
-            Move choice = Best_Move.p == PID ? Best_Move : Hand_Move.p == PID ? Hand_Move : Fail_Move;            
-            Console.WriteLine("{0} {1}",choice.c, choice.r);            
-            Console.ReadLine();
-		}
+            }            
+        }
 
-        public static Climax g(int LeveL)
+        public static void Print_Board_And_Make_Move( Move _choice )
         {
-            Climax cx = new Climax();
-            cx.counters = 0;
-            cx.handlers = 0;
-            cx.fails = 0;
+            Console.WriteLine("Computer Move:{0} {1}",_choice.r ,_choice.c);
+            grid[ _choice.r , _choice.c ].piece = _choice.p ;
+            Print_Board();
+        }
 
-            int _pid = LeveL % 2 == 0 ? PID : (PID == 1 ? 2 : 1);                  
-
-            List<Move> Valid_Moves = new List<Move>();
-
+        public static void Print_Board()
+        {
+            Console.WriteLine();
             for (int i = 0; i < 3; i++)
             {
-                for (int j = 0; j < 3; j++)
-                {
-                    if (grid[i, j].piece == 0)// Valid Move
-                    {
-                        Move m = new Move();
-                        m.p = _pid;
-                        m.r = i;
-                        m.c = j;   
-                     
-                        Execute(m);                        
-
-                        m.v = h(_pid);                        
-
-                        UnExecute(m);
-
-                        Valid_Moves.Add(m);
-                    }
-                }
+                Console.WriteLine("{0} {1} {2}", grid[i, 0].piece, grid[i, 1].piece, grid[i, 2].piece);
             }
+            Console.WriteLine();
+        }
+
+        public static void Print_Conclusion_Move(Move _choice)
+        {
+            Console.WriteLine("{0} {1}", _choice.c, _choice.r);
+        }
+
+        public static void visualize( int lvl , int begin , int _mr)
+        {
+            StringBuilder s = new StringBuilder();
+            int tabspaces = 8;
+            for (int i = 0; i < lvl * tabspaces; i++)
+            {
+                s.Append(' ');
+            }
+            if (begin == 1)
+            {                
+                vdata.Add(String.Format("{0} LvL{1}", s, lvl));                                
+                for (int i = 0; i < 3; i++)
+                {
+                    vdata.Add(String.Format("{0} {1} {2} {3}", s, grid[i, 0].piece, grid[i, 1].piece, grid[i, 2].piece));
+                }
+                vdata.Add(String.Format("{0} <N>", s));
+            }
+            else
+            {
+                vdata.Add(String.Format("{0} </N>", s));
+                vdata.Add(String.Format("{0} MR:{1}", s,_mr));
+            }
+        }
+
+        public static int g(int LeveL)
+        {
+            if (debug)
+            {
+                visualize(LeveL, 1, -1);
+            }
+
+            int _pid = LeveL % 2 == 0 ? PID : (PID == 1 ? 2 : 1);
+
+            List<Move> Valid_Moves = Generate_Valid_Moves(_pid);
             
-            Valid_Moves.Sort((x, y) => (x.v > y.v ? -1 : x.v < y.v ? 1 : 0));            
+            Valid_Moves.Sort((x, y) => (x.v > y.v ? -1 : x.v < y.v ? 1 : 0));
+
+            int master_return ;
 
             if (Valid_Moves.Count > 0)
-            {                
-                
-                foreach (Move m in Valid_Moves)
+            {
+                if (LeveL % 2 == 0)
                 {
+                    master_return = Int32.MinValue;
+                }
+                else
+                {
+                    master_return = Int32.MaxValue;
+                }
+                foreach (Move m in Valid_Moves)
+                {                    
                     if (m.v == Sentinel)
                     {
+                        if (LeveL % 2 == 0)
+                        {
+                            master_return = m.v;
+                        }
+                        else
+                        {
+                            master_return = -Sentinel;
+                        }
                         if (LeveL == 0)
                         {
-                            Best_Move = m ;// Recording Immediate Best Move
-                        }
-                        cx.counters = Valid_Moves.Count ;// This move overrates all other moves
-                        break;
+                            Best_Move = m;
+                        }                        
+                        break; 
                     }
 
                     if (LeveL < 2 * Depth)
                     {
                         Execute(m);
 
-                        Climax tilda = g(LeveL + 1);
+                        int tilda = g(LeveL + 1);// Perception
 
                         UnExecute(m);
-                        
-                        if (tilda.counters > 0)// Opp Sure Play
+
+                        if (LeveL % 2 == 0)
                         {
-                            cx.fails++;
-                        }
-                        else if (tilda.handlers > 0)// Opp Sure Handles
-                        {
-                            cx.handlers++;
-                        }
-                        else if (tilda.fails > 0)// Forced Opp Fail
-                        {
-                            cx.counters++;
-                        }
-                        else
-                        {
-                            // tilda is interesting or No Move or Leaf Node
-                        }                                                
-                    }
-                    else
-                    {                        
-                        if (m.v > 0)
-                        {
-                            cx.counters++;
-                        }
-                        else if (m.v == 0)
-                        {
-                            cx.handlers++;
+                            if (tilda > master_return)
+                            {
+                                master_return = tilda;
+
+                                if ( LeveL == 0)
+                                {
+                                    Best_Move = m;
+                                }
+
+                                if (tilda == Sentinel)
+                                {
+                                    break;
+                                }
+                            }
                         }
                         else
                         {
-                            cx.fails++;
+                            if (tilda < master_return)
+                            {
+                                master_return = tilda;
+                            }
                         }
                     }
-                    if (LeveL == 0)
+                    else // Leaf Nodes
                     {
-                        if (cx.counters > 0)
+                        if (m.v > master_return)
                         {
-                            Best_Move = m;
-                            break;
+                            master_return = m.v;
+
+                            if (Depth == 0)
+                            {
+                                Best_Move = m;
+                            }
                         }
-                        else if (cx.handlers > 0)
-                        {
-                            Hand_Move = m;
-                            cx.handlers = 0;
-                        }
-                        else if (cx.fails > 0)
-                        {
-                            Fail_Move = m;
-                            cx.fails = 0;
-                        }
-                        else
-                        {
-                            Fail_Move = m;
-                            cx.fails = 0;
-                        }
-                    }                                                  
+                    }                                                      
                 }
             }
-            // Else No Move Scenario             
-            return cx ;
+            else
+            {
+                master_return = 0;// No Move Scenario : End Nodes
+            }
+            if (debug)
+            {
+                visualize(LeveL, 0, master_return);
+            }
+            return master_return ;
         }
 
         public static int h(int pid)
@@ -295,6 +322,35 @@ namespace ConsoleApplication5
         public static int p( int i , int j , int w )
         {
             return grid[i, j].piece == w ? 1 : grid[i, j].piece == 0 ? 0 : -9;
+        }
+
+        public static List<Move> Generate_Valid_Moves( int pid )
+        {
+            List<Move> Possible_Moves = new List<Move>();
+
+            for (int i = 0; i < 3; i++)
+            {
+                for (int j = 0; j < 3; j++)
+                {
+                    if (grid[i, j].piece == 0)// Valid Move
+                    {
+                        Move m = new Move();
+                        m.p = pid;
+                        m.r = i;
+                        m.c = j;
+
+                        Execute(m);
+
+                        m.v = h(pid);
+
+                        UnExecute(m);
+
+                        Possible_Moves.Add(m);
+                    }
+                }
+            }
+
+            return Possible_Moves;
         }
 
         public static void Execute(Move m)
