@@ -24,6 +24,10 @@ namespace ConsoleApplication5
     {                
         public struct Cell
         {            
+            public Cell( int _piece )
+            {
+                piece = _piece;
+            }
             public int piece;            
         };
         public struct Move
@@ -32,47 +36,81 @@ namespace ConsoleApplication5
             public int r ;
             public int c ;            
             public int v ;
-        };        
+            public List<Transaction> steps;
+        };
+        public struct Transaction
+        {
+            public Transaction( int _r , int _c , Cell _current )
+            {                
+                r = _r;
+                c = _c;
+                old = new Cell();
+                current = _current;
+            }            
+            public int r;
+            public int c;
+            public Cell old;
+            public Cell current;
+        }
 		public static Cell[,] grid ;
-        public static Move Best_Move;
-        public static Move Hand_Move;
-        public static Move Fail_Move;
+        public static Move Best_Move;        
         public static int Sentinel = 999;
         public static int PID ;        
         public static int Depth = 3;
         public static List<string> vdata = new List<string>();
-        public static bool debug = false;
+        public static bool file = false;
+        public static bool manual = true;
 		
 		static void Main(string[] args)
-        {                                    
-            //TakeInputs();
-            int T = 0 ;
-            grid = new Cell[3, 3];            
-            Print_Board();
-            while (T < 20)
+        {
+
+            if ( manual )
             {
-                vdata.Clear();                
+                First_Board();
+                Print_Board();
                 PID = 1;
-                Best_Move.p = 0;
-                Hand_Move.p = 0;
-                Fail_Move.p = 0;
-                g(0);
-                Move choice = Best_Move.p == PID ? Best_Move : Hand_Move.p == PID ? Hand_Move : Fail_Move;
-                //Print_Conclusion_Move(choice);
-                Print_Board_And_Make_Move(choice);
-                if (debug)
+            }
+            else
+            {
+                TakeInputs();
+                file = false;
+            }                                    
+            int T = 0;
+            while (T < 100)
+            {                
+                if (file)
+                {
+                    vdata.Clear();
+                }
+                g(0);                
+                Print_Move( Best_Move );
+                if (manual)
+                {
+                    Execute(ref Best_Move);
+                    Print_Board();
+                }                                
+                if (file)
                 {
                     System.IO.File.WriteAllLines(@"C:\Users\Administrator\Desktop\TTTAI\WriteLines.xml",vdata.ToArray());
                 }
-                //Console.ReadLine();
-                string[] inp = Console.ReadLine().Trim().Split();
-                if (inp.Length < 2)
+                if (manual)
                 {
-                    break;
+                    if (!Get_User_Move())
+                    {
+                        break;
+                    }
                 }
-                grid[Int32.Parse(inp[0]), Int32.Parse(inp[1])].piece = 2;// MySelf
+                else
+                {
+                    Console.ReadLine();
+                }
             }
 		}
+
+        public static void First_Board()
+        {
+            grid = new Cell[3, 3];
+        }
 
         public static void TakeInputs()
         {            
@@ -118,11 +156,24 @@ namespace ConsoleApplication5
             }            
         }
 
-        public static void Print_Board_And_Make_Move( Move _choice )
+        public static bool Get_User_Move()
         {
-            Console.WriteLine("Computer Move:{0} {1}",_choice.r ,_choice.c);
-            grid[ _choice.r , _choice.c ].piece = _choice.p ;
-            Print_Board();
+            string line = Console.ReadLine().Trim();
+            if (!String.IsNullOrEmpty(line))
+            {
+                string[] inp = line.Split();
+                grid[Int32.Parse(inp[0]), Int32.Parse(inp[1])].piece = 2;// MySelf
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        public static void Print_Move( Move _choice )
+        {
+            Console.WriteLine("Computer Move:{0} {1}",_choice.r ,_choice.c);            
         }
 
         public static void Print_Board()
@@ -133,12 +184,7 @@ namespace ConsoleApplication5
                 Console.WriteLine("{0} {1} {2}", grid[i, 0].piece, grid[i, 1].piece, grid[i, 2].piece);
             }
             Console.WriteLine();
-        }
-
-        public static void Print_Conclusion_Move(Move _choice)
-        {
-            Console.WriteLine("{0} {1}", _choice.c, _choice.r);
-        }
+        }        
 
         public static void visualize( int lvl , int begin , int _mr)
         {
@@ -150,11 +196,13 @@ namespace ConsoleApplication5
             }
             if (begin == 1)
             {                
-                vdata.Add(String.Format("{0} LvL{1}", s, lvl));                                
+                vdata.Add(String.Format("{0} LvL{1}", s, lvl));
+                               
                 for (int i = 0; i < 3; i++)
                 {
                     vdata.Add(String.Format("{0} {1} {2} {3}", s, grid[i, 0].piece, grid[i, 1].piece, grid[i, 2].piece));
                 }
+
                 vdata.Add(String.Format("{0} <N>", s));
             }
             else
@@ -166,7 +214,7 @@ namespace ConsoleApplication5
 
         public static int g(int LeveL)
         {
-            if (debug)
+            if (file)
             {
                 visualize(LeveL, 1, -1);
             }
@@ -210,7 +258,7 @@ namespace ConsoleApplication5
 
                     if (LeveL < 2 * Depth)
                     {
-                        Execute(m);
+                        Perform(m);
 
                         int tilda = g(LeveL + 1);// Perception
 
@@ -257,9 +305,9 @@ namespace ConsoleApplication5
             }
             else
             {
-                master_return = 0;// No Move Scenario : End Nodes
+                master_return = 0;// No Move Scenario : End Nodes ( -Sentinel if no move is a defeat or 0 if no move is draw )
             }
-            if (debug)
+            if (file)
             {
                 visualize(LeveL, 0, master_return);
             }
@@ -339,7 +387,7 @@ namespace ConsoleApplication5
                         m.r = i;
                         m.c = j;
 
-                        Execute(m);
+                        Execute(ref m);
 
                         m.v = h(pid);
 
@@ -353,14 +401,38 @@ namespace ConsoleApplication5
             return Possible_Moves;
         }
 
-        public static void Execute(Move m)
+        public static void Execute(ref Move m)
+        {            
+            m.steps = new List<Transaction>();
+            m.steps.Add( new Transaction( m.r, m.c , new Cell(m.p) ) );
+            Perform(m);
+        }
+
+        public static void Perform(Move m)
         {
-            grid[m.r, m.c].piece = m.p;
+            foreach (Transaction t in m.steps)
+            {
+                ExecuteStep(t);
+            }
+        }
+
+        public static void ExecuteStep( Transaction t )
+        {
+            t.old = grid[t.r, t.c];
+            grid[t.r, t.c] = t.current;            
         }
 
         public static void UnExecute(Move m)
+        {            
+            foreach (Transaction t in m.steps)
+            {
+                UnExecuteStep(t);
+            }
+        }
+
+        public static void UnExecuteStep(Transaction t)
         {
-            grid[m.r, m.c].piece = 0;
+            grid[t.r, t.c] = t.old ;
         }
 
     }
